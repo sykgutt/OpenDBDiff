@@ -95,6 +95,7 @@
     <Compile Include="Front\SQLServerGenerator.cs" />
     <Compile Include="Front\SQLServerProjectHandler.cs" />
     <Compile Include="Front\Util\SqlServerList.cs" />
+    <Compile Include="Front\Util\SqlConnectionStringCompatibility.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>

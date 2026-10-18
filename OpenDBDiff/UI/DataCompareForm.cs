@@ -28,7 +28,8 @@ namespace OpenDBDiff.UI
             srcDgv.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             srcDgv.RowHeadersVisible = false;
             srcDgv.DataSource = srcTable;
-            srcDgv.Rows[0].Cells[0].Style.ForeColor = Color.Blue;
+            if (srcDgv.Rows.Count > 0 && srcDgv.Columns.Count > 0)
+                srcDgv.Rows[0].Cells[0].Style.ForeColor = Color.Blue;
 
             destDgv.MultiSelect = false;
             destDgv.ReadOnly = true;

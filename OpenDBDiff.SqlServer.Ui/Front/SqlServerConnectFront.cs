@@ -150,7 +150,7 @@ namespace OpenDBDiff.SqlServer.Ui
             {
                 if (!String.IsNullOrWhiteSpace(value))
                 {
-                    var builder = new SqlConnectionStringBuilder(value);
+                    var builder = SqlConnectionStringCompatibility.Parse(value);
 
                     ServerName = builder.DataSource;
                     UseWindowsAuthentication = builder.IntegratedSecurity;

@@ -7,6 +7,7 @@ using OpenDBDiff.Abstractions.Schema.Misc;
 using OpenDBDiff.Abstractions.Schema.Model;
 using OpenDBDiff.Abstractions.Ui;
 using OpenDBDiff.Extensions;
+using OpenDBDiff.ExternalDiff;
 using OpenDBDiff.Settings;
 using ScintillaNET;
 using System;
@@ -39,6 +40,31 @@ namespace OpenDBDiff.UI
             this.Text = string.Concat(nameof(OpenDBDiff), " v", Assembly.GetExecutingAssembly().GetName().Version.ToString());
         }
 
+        private bool scriptGenerationAllowed;
+
+        private void SetSynchronizedScript(IDatabase database, ICollection<ISchemaBase> selection)
+        {
+            txtSyncScript.ReadOnly = false;
+            try
+            {
+                txtSyncScript.ClearAll();
+                txtSyncScript.Text = database.ToSqlDiff(selection).ToSQL();
+                scriptGenerationAllowed = true;
+            }
+            catch (OpenDBDiff.SqlServer.Schema.Model.ScriptGenerationException ex)
+            {
+                txtSyncScript.ClearAll();
+                scriptGenerationAllowed = false;
+                MessageBox.Show(this, ex.Message, "Script generation blocked", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            finally
+            {
+                txtSyncScript.ReadOnly = true;
+                btnCopy.Enabled = scriptGenerationAllowed;
+                btnSaveAs.Enabled = scriptGenerationAllowed;
+            }
+        }
+
         private void StartComparison()
         {
             ProgressForm progress = null;
@@ -68,7 +94,8 @@ namespace OpenDBDiff.UI
                     txtSyncScript.LexerLanguage = this.ProjectSelectorHandler.GetScriptLanguage();
                     txtSyncScript.ReadOnly = false;
                     errorLocation = "Generating Synchronized Script";
-                    txtSyncScript.Text = progress.Destination.ToSqlDiff(this._selectedSchemas).ToSQL();
+                    _selectedSchemas.Clear();
+                    SetSynchronizedScript(progress.Destination, _selectedSchemas);
                     txtSyncScript.ReadOnly = true;
                     txtSyncScript.SetMarginWidth();
 
@@ -80,9 +107,11 @@ namespace OpenDBDiff.UI
                     schemaTreeView1_OnSelectItem(schemaTreeView1.SelectedNode);
                     textBox1.Text = progress.Origin.ActionMessage.Message;
 
-                    btnCopy.Enabled = true;
-                    btnSaveAs.Enabled = true;
+                    btnCopy.Enabled = scriptGenerationAllowed;
+                    btnSaveAs.Enabled = scriptGenerationAllowed;
                     btnUpdateAll.Enabled = true;
+                    btnExternalDiff.Enabled = true;
+                    menuCompareAll.Enabled = true;
                 }
                 else
                     MessageBox.Show(Owner, "Please select a valid connection string", "ERROR", MessageBoxButtons.OK,
@@ -110,11 +139,17 @@ namespace OpenDBDiff.UI
                 txtNewObject.ClearAll();
                 txtOldObject.ClearAll();
                 txtDiff.ClearAll();
+                btnCompareTableData.Enabled = false;
+                btnUpdate.Enabled = false;
 
                 if (string.IsNullOrEmpty(nodeFullName))
+                {
+                    menuCompareSelected.Enabled = false;
                     return;
+                }
 
                 IDatabase database = (IDatabase)schemaTreeView1.LeftDatabase;
+                IDatabase rightDatabase = (IDatabase)schemaTreeView1.RightDatabase;
 
                 ObjectStatus? status;
 
@@ -131,17 +166,11 @@ namespace OpenDBDiff.UI
                     {
                         btnUpdate.Enabled = true;
                     }
-                    if (database.Find(nodeFullName).ObjectType == ObjectType.Table)
-                    {
-                        btnCompareTableData.Enabled = true;
-                    }
-                    else
-                    {
-                        btnCompareTableData.Enabled = false;
-                    }
                 }
 
-                database = (IDatabase)schemaTreeView1.RightDatabase;
+                btnCompareTableData.Enabled = CanCompareTableData(database?.Find(nodeFullName), rightDatabase?.Find(nodeFullName));
+
+                database = rightDatabase;
                 status = database.Find(nodeFullName)?.Status;
                 if (status.HasValue && status.Value != ObjectStatus.Create)
                 {
@@ -210,6 +239,7 @@ namespace OpenDBDiff.UI
                 txtNewObject.ReadOnly = true;
                 txtOldObject.ReadOnly = true;
                 txtDiff.ReadOnly = true;
+                menuCompareSelected.Enabled = !string.IsNullOrEmpty(txtOldObject.Text) || !string.IsNullOrEmpty(txtNewObject.Text);
             }
         }
 
@@ -226,18 +256,149 @@ namespace OpenDBDiff.UI
             {
                 this._selectedSchemas = this.schemaTreeView1.GetCheckedSchemas();
                 this.txtSyncScript.ReadOnly = false;
-                this.txtSyncScript.Text = db.ToSqlDiff(this._selectedSchemas).ToSQL();
+                SetSynchronizedScript(db, _selectedSchemas);
                 this.txtSyncScript.ReadOnly = true;
                 txtSyncScript.SetMarginWidth();
             }
         }
 
+        private static bool CanCompareTableData(ISchemaBase leftItem, ISchemaBase rightItem)
+        {
+            if (leftItem == null || rightItem == null)
+                return false;
+            if (leftItem.ObjectType != ObjectType.Table || rightItem.ObjectType != ObjectType.Table)
+                return false;
+            if (leftItem.HasState(ObjectStatus.Drop) || leftItem.HasState(ObjectStatus.Create))
+                return false;
+            return true;
+        }
+
         private void btnCompareTableData_Click(object sender, EventArgs e)
         {
-            TreeView tree = (TreeView)schemaTreeView1.Controls.Find("treeView1", true)[0];
-            ISchemaBase selected = (ISchemaBase)tree.SelectedNode.Tag;
-            DataCompareForm dataCompare = new DataCompareForm(selected, LeftDatabaseSelector.ConnectionString, RightDatabaseSelector.ConnectionString);
-            dataCompare.ShowDialog();
+            try
+            {
+                TreeView tree = (TreeView)schemaTreeView1.Controls.Find("treeView1", true)[0];
+                ISchemaBase selected = tree.SelectedNode?.Tag as ISchemaBase;
+                if (!CanCompareTableData(selected, ((IDatabase)schemaTreeView1.RightDatabase)?.Find(selected?.FullName)))
+                {
+                    MessageBox.Show(this,
+                        "Data compare requires a table that exists in both databases. Dropped or newly created tables cannot be compared.",
+                        "Compare data",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                    return;
+                }
+
+                DataCompareForm dataCompare = new DataCompareForm(selected, LeftDatabaseSelector.ConnectionString, RightDatabaseSelector.ConnectionString);
+                dataCompare.ShowDialog(this);
+            }
+            catch (Exception ex)
+            {
+                HandleException("Comparing table data", ex);
+            }
+        }
+
+        private void btnExternalDiff_Click(object sender, EventArgs e)
+        {
+            LaunchExternalDiffSelected();
+        }
+
+        private void menuCompareSelected_Click(object sender, EventArgs e)
+        {
+            LaunchExternalDiffSelected();
+        }
+
+        private void menuCompareAll_Click(object sender, EventArgs e)
+        {
+            LaunchExternalDiffAll();
+        }
+
+        private void menuConfigureTool_Click(object sender, EventArgs e)
+        {
+            ShowExternalDiffSettings();
+        }
+
+        private bool EnsureExternalDiffConfigured()
+        {
+            var settings = ExternalDiffSettings.Get();
+            if (settings.IsConfigured)
+                return true;
+
+            using (var form = new ExternalDiffSettingsForm())
+            {
+                if (form.ShowDialog(this) != DialogResult.OK)
+                    return false;
+            }
+
+            return ExternalDiffSettings.Get().IsConfigured;
+        }
+
+        private void ShowExternalDiffSettings()
+        {
+            using (var form = new ExternalDiffSettingsForm())
+            {
+                form.ShowDialog(this);
+            }
+        }
+
+        private void LaunchExternalDiffSelected()
+        {
+            try
+            {
+                if (!EnsureExternalDiffConfigured())
+                    return;
+
+                if (string.IsNullOrEmpty(schemaTreeView1.SelectedNode) ||
+                    (string.IsNullOrEmpty(txtOldObject.Text) && string.IsNullOrEmpty(txtNewObject.Text)))
+                {
+                    MessageBox.Show(this,
+                        "Select an object in the schema tree, or right-click External diff to compare all differences.",
+                        "External diff",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                    return;
+                }
+
+                ExternalDiffLauncher.LaunchSelectedObject(
+                    ExternalDiffSettings.Get(),
+                    txtOldObject.Text,
+                    txtNewObject.Text,
+                    schemaTreeView1.SelectedNode,
+                    RightDatabaseSelector != null ? RightDatabaseSelector.ToString() : "Current",
+                    LeftDatabaseSelector != null ? LeftDatabaseSelector.ToString() : "Desired");
+            }
+            catch (Exception ex)
+            {
+                HandleException("Opening external diff", ex);
+            }
+        }
+
+        private void LaunchExternalDiffAll()
+        {
+            try
+            {
+                if (!EnsureExternalDiffConfigured())
+                    return;
+
+                var left = schemaTreeView1.LeftDatabase as IDatabase;
+                var right = schemaTreeView1.RightDatabase as IDatabase;
+                if (left == null)
+                {
+                    MessageBox.Show(this, "Compare two databases before opening an external diff.", "External diff", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                var pairs = ExternalDiffObjectCollector.GetDifferences(left, right);
+                ExternalDiffLauncher.LaunchAllDifferences(
+                    ExternalDiffSettings.Get(),
+                    pairs,
+                    RightDatabaseSelector != null ? RightDatabaseSelector.ToString() : "Current",
+                    LeftDatabaseSelector != null ? LeftDatabaseSelector.ToString() : "Desired");
+            }
+            catch (Exception ex)
+            {
+                HandleException("Opening external diff", ex);
+            }
         }
 
         private void btnCompare_Click(object sender, EventArgs e)
@@ -337,10 +498,11 @@ namespace OpenDBDiff.UI
                     var db = schemaTreeView1.LeftDatabase as IDatabase;
                     if (db != null)
                     {
+                        this._selectedSchemas = this.schemaTreeView1.GetCheckedSchemas();
+                        var script = db.ToSqlDiff(this._selectedSchemas).ToSQL();
                         using (StreamWriter writer = new StreamWriter(saveFileDialog1.FileName, false))
                         {
-                            this._selectedSchemas = this.schemaTreeView1.GetCheckedSchemas();
-                            writer.Write(db.ToSqlDiff(this._selectedSchemas).ToSQL());
+                            writer.Write(script);
                             writer.Close();
                         }
                     }
@@ -368,6 +530,8 @@ namespace OpenDBDiff.UI
         private void btnUpdate_Click(object sender, EventArgs e)
         {
             TreeView tree = (TreeView)schemaTreeView1.Controls.Find("treeView1", true)[0];
+            try { ((IDatabase)schemaTreeView1.LeftDatabase).ToSqlDiff(schemaTreeView1.GetCheckedSchemas()); }
+            catch (Exception ex) { HandleException("Validating updates", ex); return; }
             TreeNode dbArm = tree.Nodes[0];
             var sb = new StringBuilder();
 
@@ -469,6 +633,8 @@ namespace OpenDBDiff.UI
 
         private void btnUpdateAll_Click(object sender, EventArgs e)
         {
+            try { ((IDatabase)schemaTreeView1.LeftDatabase).ToSqlDiff(new List<ISchemaBase>()); }
+            catch (Exception ex) { HandleException("Validating updates", ex); return; }
             if (MessageBox.Show("Are you sure you want to update all?", "Confirm update", MessageBoxButtons.OKCancel) == DialogResult.OK)
             {
                 TreeView tree = (TreeView)schemaTreeView1.Controls.Find("treeView1", true)[0];

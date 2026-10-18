@@ -1,4 +1,5 @@
-﻿using OpenDBDiff.Abstractions.Schema;
+using OpenDBDiff.SqlServer.Schema.Model;
+using OpenDBDiff.Abstractions.Schema;
 using OpenDBDiff.Abstractions.Schema.Attributes;
 using OpenDBDiff.Abstractions.Schema.Model;
 using System;
@@ -20,10 +21,28 @@ namespace OpenDBDiff.UI
         public event SchemaHandler OnSelectItem;
 
         private bool busy = false;
+        private readonly Dictionary<string, ISchemaBase> checkedItems = new Dictionary<string, ISchemaBase>();
+
+        private static string ItemKey(ISchemaBase item) { return item.ObjectType + ":" + item.FullName; }
+
+        private void RememberCheckedNodes(TreeNodeCollection nodes)
+        {
+            foreach (TreeNode node in nodes)
+            {
+                var item = node.Tag as ISchemaBase;
+                if (item != null)
+                {
+                    if (node.Checked) checkedItems[ItemKey(item)] = item;
+                    else checkedItems.Remove(ItemKey(item));
+                }
+                RememberCheckedNodes(node.Nodes);
+            }
+        }
 
         public SchemaTreeView()
         {
             InitializeComponent();
+            treeView1.ShowNodeToolTips = true;
         }
 
         public ISchemaBase RightDatabase { get; set; }
@@ -33,6 +52,11 @@ namespace OpenDBDiff.UI
             get { return databaseSource; }
             set
             {
+                if (!ReferenceEquals(databaseSource, value))
+                {
+                    checkedItems.Clear();
+                    treeView1.Nodes.Clear();
+                }
                 databaseSource = value;
                 if (value != null)
                 {
@@ -43,32 +67,18 @@ namespace OpenDBDiff.UI
 
         public List<ISchemaBase> GetCheckedSchemas()
         {
-            List<ISchemaBase> schemas = new List<ISchemaBase>();
             if (treeView1.CheckBoxes)
             {
-                GetCheckedNodesToList(schemas, treeView1.Nodes);
+                RememberCheckedNodes(treeView1.Nodes);
             }
-            return schemas;
+            return checkedItems.Values.ToList();
         }
 
         public void SetCheckedSchemas(List<ISchemaBase> schemas)
         {
+            checkedItems.Clear();
+            foreach (var item in schemas) checkedItems[ItemKey(item)] = item;
             SetCheckedNodesFromList(schemas, treeView1.Nodes);
-        }
-
-        private void GetCheckedNodesToList(List<ISchemaBase> schemas, TreeNodeCollection nodes)
-        {
-            foreach (TreeNode node in nodes)
-            {
-                if (node.Tag != null)
-                {
-                    if (node.Checked)
-                    {
-                        schemas.Add(node.Tag as ISchemaBase);
-                    }
-                }
-                GetCheckedNodesToList(schemas, node.Nodes);
-            }
         }
 
         private void SetCheckedNodesFromList(List<ISchemaBase> schemas, TreeNodeCollection nodes)
@@ -77,7 +87,8 @@ namespace OpenDBDiff.UI
             {
                 if (node.Tag != null)
                 {
-                    node.Checked = schemas.FirstOrDefault(sch => sch.Id == (node.Tag as ISchemaBase).Id) != null;
+                    var item = (ISchemaBase)node.Tag;
+                    node.Checked = schemas.Any(sch => sch.ObjectType == item.ObjectType && sch.FullName == item.FullName);
                 }
                 SetCheckedNodesFromList(schemas, node.Nodes);
             }
@@ -95,22 +106,34 @@ namespace OpenDBDiff.UI
                     SchemaNodeAttribute show = (SchemaNodeAttribute)attrs[0];
                     TreeNode node = nodes.Add(p.Name, show.Name);
                     node.ImageKey = "Folder";
-                    ReadPropertyDetail(node, p, schema, show);
+                    if (schema is Database && p.Name == "Tables")
+                    {
+                        var tables = ((Database)schema).Tables;
+                        ReadItems(node, tables.Where(t => !t.IsMemoryOptimized).Cast<ISchemaBase>().ToList(), show);
+                        var memoryNode = nodes.Add("MemoryOptimizedTables", "Memory-Optimized Tables");
+                        memoryNode.ImageKey = "Folder";
+                        ReadItems(memoryNode, tables.Where(t => t.IsMemoryOptimized).Cast<ISchemaBase>().ToList(), show);
+                    }
+                    else ReadPropertyDetail(node, p, schema, show);
                 }
             }
         }
 
         private void ReadPropertyDetail(TreeNode node, PropertyInfo p, ISchemaBase schema, SchemaNodeAttribute attr)
         {
+            ReadItems(node, ((IList)p.GetValue(schema, null)).Cast<ISchemaBase>().ToList(), attr);
+        }
+
+        private void ReadItems(TreeNode node, IList<ISchemaBase> items, SchemaNodeAttribute attr)
+        {
             Color NodeColor = Color.Black;
-            IList items = (IList)p.GetValue(schema, null);
-            node.Text = node.Text + " (" + items.Count + ")";
+            node.Text = node.Text + " (" + items.Count(CanNodeAdd) + " / " + items.Count + ")";
             node.Nodes.Clear();
             foreach (ISchemaBase item in items)
             {
                 if (CanNodeAdd(item))
                 {
-                    TreeNode subnode = node.Nodes.Add(item.Id.ToString(), (attr.IsFullName ? item.FullName : item.Name));
+                    TreeNode subnode = node.Nodes.Add(ItemKey(item), (attr.IsFullName ? item.FullName : item.Name));
                     if (item.Status == ObjectStatus.Drop)
                     {
                         subnode.ForeColor = Color.Red;
@@ -136,6 +159,12 @@ namespace OpenDBDiff.UI
                         subnode.ForeColor = Color.Purple;
                         NodeColor = (NodeColor == Color.Black || NodeColor == Color.Purple ? Color.Purple : Color.Plum);
                     }
+                    var table = item as Table;
+                    if (table != null && MemoryOptimizedTableSql.IsMemoryTable(table))
+                    {
+                        subnode.ToolTipText = string.Join("\r\n", MemoryOptimizedTableSql.BlockingReasons(table, new List<ISchemaBase>()));
+                        if (subnode.ToolTipText.Length > 0) subnode.Text += " [script blocked]";
+                    }
                     subnode.Tag = item;
                     subnode.ImageKey = attr.Image;
                     subnode.SelectedImageKey = attr.Image;
@@ -147,6 +176,7 @@ namespace OpenDBDiff.UI
 
         private void RebuildSchemaTree()
         {
+            var checkedSchemas = GetCheckedSchemas();
             string currentlySelectedNode = treeView1.SelectedNode != null ? treeView1.SelectedNode.Name : null;
             string currentTopNode = treeView1.TopNode != null ? treeView1.TopNode.Name : null;
 
@@ -155,6 +185,7 @@ namespace OpenDBDiff.UI
             treeView1.Nodes.Clear();
             TreeNode databaseNode = treeView1.Nodes.Add("root", databaseSource.Name);
             ReadProperties(databaseSource.GetType(), databaseNode.Nodes, databaseSource);
+            SetCheckedSchemas(checkedSchemas);
             treeView1.Sort();
             databaseNode.ImageKey = "Database";
             databaseNode.Expand();

@@ -74,6 +74,11 @@ namespace OpenDBDiff.UI
             this.btnCopy = new System.Windows.Forms.Button();
             this.btnUpdate = new System.Windows.Forms.Button();
             this.btnCompareTableData = new System.Windows.Forms.Button();
+            this.btnExternalDiff = new System.Windows.Forms.Button();
+            this.menuExternalDiff = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.menuCompareSelected = new System.Windows.Forms.ToolStripMenuItem();
+            this.menuCompareAll = new System.Windows.Forms.ToolStripMenuItem();
+            this.menuConfigureTool = new System.Windows.Forms.ToolStripMenuItem();
             this.btnUpdateAll = new System.Windows.Forms.Button();
             this.btnNewProject = new System.Windows.Forms.Button();
             this.btnSaveProject = new System.Windows.Forms.Button();
@@ -448,7 +453,9 @@ namespace OpenDBDiff.UI
             this.PanelActions.Controls.Add(this.btnCopy);
             this.PanelActions.Controls.Add(this.btnUpdate);
             this.PanelActions.Controls.Add(this.btnCompareTableData);
+            this.PanelActions.Controls.Add(this.btnExternalDiff);
             this.PanelActions.Controls.Add(this.btnUpdateAll);
+            this.PanelActions.AutoScroll = true;
             this.PanelActions.Dock = System.Windows.Forms.DockStyle.Right;
             this.PanelActions.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
             this.PanelActions.Location = new System.Drawing.Point(842, 175);
@@ -556,14 +563,62 @@ namespace OpenDBDiff.UI
             this.btnCompareTableData.UseVisualStyleBackColor = true;
             this.btnCompareTableData.Click += new System.EventHandler(this.btnCompareTableData_Click);
             // 
+            // btnExternalDiff
+            // 
+            this.btnExternalDiff.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnExternalDiff.ContextMenuStrip = this.menuExternalDiff;
+            this.btnExternalDiff.Enabled = false;
+            this.btnExternalDiff.Image = global::OpenDBDiff.Properties.Resources.new_window;
+            this.btnExternalDiff.ImageAlign = System.Drawing.ContentAlignment.TopCenter;
+            this.btnExternalDiff.Location = new System.Drawing.Point(3, 369);
+            this.btnExternalDiff.Name = "btnExternalDiff";
+            this.btnExternalDiff.Size = new System.Drawing.Size(95, 55);
+            this.btnExternalDiff.TabIndex = 11;
+            this.btnExternalDiff.Text = "External diff";
+            this.btnExternalDiff.TextAlign = System.Drawing.ContentAlignment.BottomCenter;
+            this.btnExternalDiff.UseVisualStyleBackColor = true;
+            this.btnExternalDiff.Click += new System.EventHandler(this.btnExternalDiff_Click);
+            this.toolTip1.SetToolTip(this.btnExternalDiff, "Open the selected object in an external diff tool. Right-click for more options.");
+            // 
+            // menuExternalDiff
+            // 
+            this.menuExternalDiff.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.menuCompareSelected,
+            this.menuCompareAll,
+            this.menuConfigureTool});
+            this.menuExternalDiff.Name = "menuExternalDiff";
+            this.menuExternalDiff.Size = new System.Drawing.Size(220, 70);
+            // 
+            // menuCompareSelected
+            // 
+            this.menuCompareSelected.Enabled = false;
+            this.menuCompareSelected.Name = "menuCompareSelected";
+            this.menuCompareSelected.Size = new System.Drawing.Size(219, 22);
+            this.menuCompareSelected.Text = "Compare selected object";
+            this.menuCompareSelected.Click += new System.EventHandler(this.menuCompareSelected_Click);
+            // 
+            // menuCompareAll
+            // 
+            this.menuCompareAll.Enabled = false;
+            this.menuCompareAll.Name = "menuCompareAll";
+            this.menuCompareAll.Size = new System.Drawing.Size(219, 22);
+            this.menuCompareAll.Text = "Compare all differences";
+            this.menuCompareAll.Click += new System.EventHandler(this.menuCompareAll_Click);
+            // 
+            // menuConfigureTool
+            // 
+            this.menuConfigureTool.Name = "menuConfigureTool";
+            this.menuConfigureTool.Size = new System.Drawing.Size(219, 22);
+            this.menuConfigureTool.Text = "Configure external tool...";
+            this.menuConfigureTool.Click += new System.EventHandler(this.menuConfigureTool_Click);
+            // 
             // btnUpdateAll
             // 
             this.btnUpdateAll.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnUpdateAll.Enabled = false;
             this.btnUpdateAll.Image = global::OpenDBDiff.Properties.Resources.database_refresh;
             this.btnUpdateAll.ImageAlign = System.Drawing.ContentAlignment.TopCenter;
-            this.btnUpdateAll.Location = new System.Drawing.Point(3, 396);
-            this.btnUpdateAll.Margin = new System.Windows.Forms.Padding(3, 30, 3, 3);
+            this.btnUpdateAll.Location = new System.Drawing.Point(3, 430);
             this.btnUpdateAll.Name = "btnUpdateAll";
             this.btnUpdateAll.Size = new System.Drawing.Size(95, 55);
             this.btnUpdateAll.TabIndex = 10;
@@ -728,6 +783,11 @@ namespace OpenDBDiff.UI
         private Button btnProject;
         private Button btnNewProject;
         private Button btnCompareTableData;
+        private Button btnExternalDiff;
+        private ContextMenuStrip menuExternalDiff;
+        private ToolStripMenuItem menuCompareSelected;
+        private ToolStripMenuItem menuCompareAll;
+        private ToolStripMenuItem menuConfigureTool;
         private TabPage tabPage6;
         private Scintilla txtDiff;
         private ToolStrip toolMenu;

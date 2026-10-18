@@ -2,7 +2,6 @@
 using OpenDBDiff.Abstractions.Schema.Model;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 
@@ -10,7 +9,6 @@ namespace OpenDBDiff.Settings
 {
     public class Project
     {
-        private const string settingsFile = "settings.liteDb";
         private static bool showErrors;
 
         public enum ProjectType
@@ -33,21 +31,11 @@ namespace OpenDBDiff.Settings
 
         public ProjectType Type { get; set; }
 
-        private static string SettingsFilePath
-        {
-            get
-            {
-                var userLocalAppDataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), nameof(OpenDBDiff));
-                if (!Directory.Exists(userLocalAppDataDirectory)) Directory.CreateDirectory(userLocalAppDataDirectory);
-
-                return Path.Combine(userLocalAppDataDirectory, settingsFile);
-            }
-        }
-
         public static int Delete(Guid id)
         {
-            using (var db = GetDatabase())
+            using (var settings = SettingsDatabase.Open())
             {
+                var db = settings.Database;
                 var projects = db.GetCollection<Project>("projects");
                 return projects.DeleteMany(p => p.Id == id);
             }
@@ -55,16 +43,18 @@ namespace OpenDBDiff.Settings
 
         public static IEnumerable<Project> GetAll()
         {
-            using (var db = GetDatabase())
+            using (var settings = SettingsDatabase.Open())
             {
+                var db = settings.Database;
                 return db.GetCollection<Project>("projects").FindAll().ToArray();
             }
         }
 
         public static Project GetLastConfiguration()
         {
-            using (var db = GetDatabase())
+            using (var settings = SettingsDatabase.Open())
             {
+                var db = settings.Database;
                 var projects = db.GetCollection<Project>("projects");
                 return projects.Query()
                     .Where(p => p.IsLastConfiguration)
@@ -91,8 +81,9 @@ namespace OpenDBDiff.Settings
         {
             try
             {
-                using (var db = GetDatabase())
+                using (var settings = SettingsDatabase.Open())
                 {
+                    var db = settings.Database;
                     var projects = db.GetCollection<Project>("projects");
                     item.SavedDateTime = DateTime.Now;
                     return projects.Upsert(item);
@@ -111,7 +102,5 @@ namespace OpenDBDiff.Settings
         {
             return Options.Serialize();
         }
-
-        private static LiteDatabase GetDatabase() => new LiteDatabase(SettingsFilePath);
     }
 }

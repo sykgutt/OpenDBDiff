@@ -14,8 +14,40 @@ namespace OpenDBDiff
     /// </summary>
     static class Updater
     {
+        private static bool IsMemoryTarget(ISchemaBase target)
+        {
+            var table = target as OpenDBDiff.SqlServer.Schema.Model.Table;
+            return table != null && OpenDBDiff.SqlServer.Schema.Model.MemoryOptimizedTableSql.IsMemoryTable(table);
+        }
+
+        private static string ExecuteMemoryTable(ISchemaBase target, string connectionString)
+        {
+            var script = target.ToSqlDiff(new List<ISchemaBase>()).ToSQL();
+            using (var connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                foreach (var batch in System.Text.RegularExpressions.Regex.Split(script, @"^\s*GO\s*$", System.Text.RegularExpressions.RegexOptions.Multiline | System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                {
+                    if (string.IsNullOrWhiteSpace(batch)) continue;
+                    using (var command = new SqlCommand(batch, connection)) command.ExecuteNonQuery();
+                }
+            }
+            return string.Empty;
+        }
+        private static void ValidateTarget(ISchemaBase target)
+        {
+            var database = target.RootParent as OpenDBDiff.SqlServer.Schema.Model.Database;
+            if (database != null)
+                OpenDBDiff.SqlServer.Schema.Model.MemoryOptimizedTableSql.Validate(database, new List<ISchemaBase> { target });
+            var table = OpenDBDiff.SqlServer.Schema.Model.MemoryOptimizedTableSql.OwningTable(target);
+            if (table != null && OpenDBDiff.SqlServer.Schema.Model.MemoryOptimizedTableSql.IsMemoryTable(table) && !(target is OpenDBDiff.SqlServer.Schema.Model.Table))
+                throw new OpenDBDiff.SqlServer.Schema.Model.ScriptGenerationException(new[] { table.FullName + ": update memory objects through their table so all dependencies are validated." });
+        }
+
         public static string createNew(ISchemaBase target, string connectionString)
         {
+            ValidateTarget(target);
+            if (IsMemoryTarget(target)) return ExecuteMemoryTable(target, connectionString);
             string script = target.ToSql();
             script = script.Replace("GO", "");
             //script = script.Replace("\r", "");
@@ -42,6 +74,8 @@ namespace OpenDBDiff
 
         public static string addNew(ISchemaBase target, string connectionString)
         {
+            ValidateTarget(target);
+            if (IsMemoryTarget(target)) return ExecuteMemoryTable(target, connectionString);
             string result = string.Empty;
             string script = target.ToSqlAdd();
             script = script.Replace("GO", "");
@@ -95,6 +129,7 @@ namespace OpenDBDiff
 
         public static string alter(ISchemaBase target, string connectionString)
         {
+            ValidateTarget(target);
             var db = target.RootParent as IDatabase;
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
@@ -107,6 +142,7 @@ namespace OpenDBDiff
                     return "Cancelled.";
                 }
 
+                if (IsMemoryTarget(target)) return ExecuteMemoryTable(target, connectionString);
                 var sb = new StringBuilder();
                 SQLScriptList SqlDiff = target.ToSqlDiff(new List<ISchemaBase>());
                 string[] splitOn = { "GO" };
@@ -142,6 +178,8 @@ namespace OpenDBDiff
 
         public static string rebuild(ISchemaBase target, string connectionString)
         {
+            ValidateTarget(target);
+            if (IsMemoryTarget(target)) return ExecuteMemoryTable(target, connectionString);
             SQLScriptList SqlDiff = target.ToSqlDiff(new List<ISchemaBase>());
             string[] splitOn = { "GO" };
             string[] tempList = SqlDiff.ToSQL().Split(splitOn, StringSplitOptions.RemoveEmptyEntries);
