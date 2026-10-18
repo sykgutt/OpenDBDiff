@@ -1,6 +1,16 @@
 # OpenDBDiff
 A database comparison tool for Microsoft SQL Server 2005+ that reports schema differences and creates a synchronization script.
 
+## Documentación y ejecución
+
+- [Compilar, ejecutar la GUI/CLI y correr pruebas](Documentacion/Ejecucion.md)
+- [Documentación técnica y arquitectura](Documentacion/README.md)
+- [Estado, validaciones y seguimiento](Documentacion/Seguimiento.md)
+- [Codebase Memory](Documentacion/CodebaseMemory.md)
+- [Guía para agentes y próximas sesiones](AGENTS.md)
+
+El proyecto usa Windows y .NET Framework 4.5.2. En la GUI, el script transforma la base de la derecha para coincidir con la izquierda; en la CLI, transforma `--before` hacia `--after`.
+
 [![Build status](https://ci.appveyor.com/api/projects/status/rdng91bfx3ao8ts6?svg=true)](https://ci.appveyor.com/project/OpenDBDiff/OpenDBDiff/branch/develop/artifacts)
 
 [💾 Download latest release](https://github.com/OpenDBDiff/OpenDBDiff/releases/latest)
