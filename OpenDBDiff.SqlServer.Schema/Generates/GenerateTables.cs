@@ -212,12 +212,15 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
                 if (database.Tables.Any() || database.TablesTypes.Any())
                 {
                     if (database.Options.Ignore.FilterConstraint)
+                    {
+                        root.RaiseOnReading(new ProgressEventArgs("Reading constraints...", Constants.READING_CONSTRAINTS));
                         (new GenerateConstraint(root)).Fill(database, connectionString);
+                    }
                 }
             }
             catch (Exception ex)
             {
-                messages.Add(new MessageLog(ex.Message, ex.StackTrace, MessageLog.LogType.Error));
+                throw new OpenDBDiff.Abstractions.Schema.Misc.SchemaException("Reading tables/columns/constraints in " + database.Name + " / " + root.LastReadStage + " (" + root.LastReadObject + "): " + ex.Message, ex);
             }
         }
 
@@ -232,7 +235,7 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
 
             using (SqlConnection conn = new SqlConnection(connectionString))
             {
-                using (SqlCommand command = new SqlCommand(TableSQLCommand.GetTableDetail(database.Info.Version, database.Info.Edition), conn))
+                using (SqlCommand command = new SqlCommand(TableSQLCommand.GetTableDetail(database.Info), conn))
                 {
                     conn.Open();
                     command.CommandTimeout = 0;
@@ -252,13 +255,18 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
                                     item.Id = (int)reader[TableIdIndex];
                                     item.Name = (string)reader[TableNameIndex];
                                     item.Owner = (string)reader[TableOwnerIndex];
+                                    if (database.Info.MajorVersion >= 12)
+                                    {
+                                        ((Table)item).IsMemoryOptimized = (bool)reader["IsMemoryOptimized"];
+                                        ((Table)item).Durability = (string)reader["Durability"];
+                                    }
                                     ((Table)item).HasClusteredIndex = (int)reader[HasClusteredIndexIndex] == 1;
                                     textInRow = (int)reader[Text_In_Row_limitIndex];
                                     largeValues = (Boolean)reader[large_value_types_out_of_rowIndex];
                                     varDecimal = ((int)reader[HasVarDecimalIndex]) == 1;
                                     if (database.Options.Ignore.FilterTableFileGroup)
                                     {
-                                        ((Table)item).FileGroup = (string)reader[FileGroupIndex];
+                                        ((Table)item).FileGroup = reader[FileGroupIndex].ToString();
                                         ((Table)item).FileGroupText = (string)reader[FileGroupTextIndex];
                                         if (database.Info.Version == DatabaseInfo.SQLServerVersion.SQLServer2008)
                                         {
@@ -307,7 +315,23 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
                     }
                 }
             }
-            //tables.ToSQL();
+            if (database.Info.MajorVersion >= 12)
+            {
+                using (var conn = new SqlConnection(connectionString))
+                using (var command = new SqlCommand(@"SELECT DISTINCT d.referenced_id, QUOTENAME(OBJECT_SCHEMA_NAME(d.referencing_id))+'.'+QUOTENAME(OBJECT_NAME(d.referencing_id))
+                    FROM sys.sql_expression_dependencies d WHERE d.is_schema_bound_reference=1 AND d.referencing_id<>d.referenced_id
+                    AND NOT EXISTS (SELECT 1 FROM sys.objects o WHERE o.object_id=d.referencing_id
+                        AND o.parent_object_id=d.referenced_id AND o.type IN ('C','D','F','PK','UQ'))", conn))
+                {
+                    conn.Open();
+                    using (var reader = command.ExecuteReader())
+                        while (reader.Read())
+                        {
+                            var table = database.Tables.Find(reader.GetInt32(0));
+                            if (table != null && !reader.IsDBNull(1)) table.SchemaBoundDependents.Add(reader.GetString(1));
+                        }
+                }
+            }
         }
     }
 }

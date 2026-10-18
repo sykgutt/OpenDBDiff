@@ -48,6 +48,7 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
                             {
                                 // used to use the decimal as well when Azure was 10.25
                                 var version = new Version(versionValue);
+                                item.ProductVersion = versionValue;
                                 item.VersionNumber = float.Parse(String.Format("{0}.{1}", version.Major, version.Minor), CultureInfo.InvariantCulture);
 
                                 if (reader.FieldCount > 1 && !reader.IsDBNull(1))
@@ -90,6 +91,22 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
 
             }
 
+            if (item.MajorVersion >= 12)
+            {
+                using (var conn = new SqlConnection(connectioString))
+                using (var command = new SqlCommand(@"SELECT CONVERT(int, SERVERPROPERTY('IsXTPSupported')) AS Supported,
+                    CASE WHEN EXISTS (SELECT 1 FROM sys.filegroups fg JOIN sys.database_files f ON f.data_space_id=fg.data_space_id
+                    WHERE fg.type='FX' AND f.state=0) THEN 1 ELSE 0 END AS HasContainer", conn))
+                {
+                    conn.Open();
+                    using (var reader = command.ExecuteReader())
+                    {
+                        reader.Read();
+                        item.IsXtpSupported = !reader.IsDBNull(0) && reader.GetInt32(0) == 1;
+                        item.HasMemoryOptimizedFileGroup = reader.GetInt32(1) == 1;
+                    }
+                }
+            }
             return item;
         }
     }

@@ -26,7 +26,7 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
             root.RaiseOnReading(new ProgressEventArgs("Reading Index...", Constants.READING_INDEXES));
             using (SqlConnection conn = new SqlConnection(connectionString))
             {
-                using (SqlCommand command = new SqlCommand(IndexSQLCommand.Get(database.Info.Version, database.Info.Edition), conn))
+                using (SqlCommand command = new SqlCommand(IndexSQLCommand.Get(database.Info), conn))
                 {
                     conn.Open();
                     command.CommandTimeout = 0;
@@ -57,6 +57,7 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
                                     item.Name = reader["Name"].ToString();
                                     item.Owner = parent.Owner;
                                     item.Type = (Index.IndexTypeEnum)(byte)reader["type"];
+                                    if (database.Info.MajorVersion >= 12) item.BucketCount = System.Convert.ToInt64(reader["BucketCount"]);
                                     item.Id = (int)reader["index_id"];
                                     item.IgnoreDupKey = (bool)reader["ignore_dup_key"];
                                     item.IsAutoStatistics = (bool)reader["NoAutomaticRecomputation"];

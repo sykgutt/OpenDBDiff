@@ -5,6 +5,14 @@ namespace OpenDBDiff.SqlServer.Schema.Generates.SQLCommands
 {
     internal static class TableSQLCommand
     {
+        public static string GetTableDetail(DatabaseInfo info)
+        {
+            var sql = GetTableDetail(info.Version, info.Edition);
+            if (info.MajorVersion >= 12)
+                sql = sql.Replace("SELECT DISTINCT ", "SELECT DISTINCT ISNULL(TTT.is_memory_optimized,0) AS IsMemoryOptimized, ISNULL(TTT.durability_desc,'SCHEMA_AND_DATA') AS Durability, ");
+            return sql;
+        }
+
         #region Table Count
 
         public static string GetTableCount(DatabaseInfo.SQLServerVersion version, DatabaseInfo.SQLServerEdition edition)

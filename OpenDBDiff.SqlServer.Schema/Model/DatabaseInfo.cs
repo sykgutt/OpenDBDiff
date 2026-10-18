@@ -29,6 +29,12 @@ namespace OpenDBDiff.SqlServer.Schema.Model
         }
 
         private float versionNumber;
+        public int MajorVersion { get { return (int)VersionNumber; } }
+        public string ProductVersion { get; set; }
+        public bool IsXtpSupported { get; set; }
+        public bool HasMemoryOptimizedFileGroup { get; set; }
+        public bool SupportsMemoryOptimizedTables { get { return MajorVersion >= 12 && IsXtpSupported; } }
+        public bool SupportsMemoryOptimizedAlter { get { return SupportsMemoryOptimizedTables && MajorVersion >= 13; } }
 
         public DatabaseInfo()
         {

@@ -75,7 +75,7 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
             return SQLQueries.SQLQueryFactory.Get("GetForeignKeys");
         }
 
-        private static void FillForeignKey(Database database, string connectionString)
+        private void FillForeignKey(Database database, string connectionString)
         {
             int lastid = 0;
             int parentId = 0;
@@ -92,6 +92,7 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
                         Constraint con = null;
                         while (reader.Read())
                         {
+                            root.RaiseOnReadingOne(reader["Name"]);
                             if (parentId != (int)reader["parent_object_id"])
                             {
                                 parentId = (int)reader["parent_object_id"];
@@ -136,7 +137,7 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
         #endregion
 
         #region UniqueKey Functions...
-        private static void FillUniqueKey(Database database, string connectionString)
+        private void FillUniqueKey(Database database, string connectionString)
         {
             int lastId = 0;
             int parentId = 0;
@@ -145,7 +146,7 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
 
             using (SqlConnection conn = new SqlConnection(connectionString))
             {
-                using (SqlCommand command = new SqlCommand(ConstraintSQLCommand.GetUniqueKey(database.Info.Version, database.Info.Edition), conn))
+                using (SqlCommand command = new SqlCommand(ConstraintSQLCommand.GetUniqueKey(database.Info), conn))
                 {
                     conn.Open();
                     command.CommandTimeout = 0;
@@ -154,6 +155,7 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
                         Constraint con = null;
                         while (reader.Read())
                         {
+                            root.RaiseOnReadingOne(reader["Name"]);
                             if (parentId != (int)reader["ID"])
                             {
                                 parentId = (int)reader["ID"];
@@ -186,6 +188,7 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
                                     con.Index.IsPrimaryKey = false;
                                     con.Index.IsUniqueKey = true;
                                     con.Index.Type = (Index.IndexTypeEnum)(byte)reader["type"];
+                                    if (database.Info.MajorVersion >= 12) con.Index.BucketCount = System.Convert.ToInt64(reader["BucketCount"]);
                                     con.Index.Name = con.Name;
                                     if (database.Options.Ignore.FilterTableFileGroup)
                                         con.Index.FileGroup = reader["FileGroup"].ToString();
@@ -199,6 +202,7 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
                                 ccon.Name = reader["ColumnName"].ToString();
                                 ccon.IsIncluded = (bool)reader["is_included_column"];
                                 ccon.Order = (bool)reader["is_descending_key"];
+                                if (database.Info.MajorVersion >= 12) ccon.KeyOrder = System.Convert.ToInt32(reader["MemoryKeyOrdinal"]);
                                 ccon.Id = (int)reader["column_id"];
                                 ccon.DataTypeId = (int)reader["user_type_id"];
                                 con.Columns.Add(ccon);
@@ -211,7 +215,7 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
         #endregion
 
         #region PrimaryKey Functions...
-        private static void FillPrimaryKey(Database database, string connectionString)
+        private void FillPrimaryKey(Database database, string connectionString)
         {
             int lastId = 0;
             int parentId = 0;
@@ -220,7 +224,7 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
 
             using (SqlConnection conn = new SqlConnection(connectionString))
             {
-                using (SqlCommand command = new SqlCommand(ConstraintSQLCommand.GetPrimaryKey(database.Info.Version, null), conn))
+                using (SqlCommand command = new SqlCommand(ConstraintSQLCommand.GetPrimaryKey(database.Info), conn))
                 {
                     conn.Open();
                     command.CommandTimeout = 0;
@@ -229,6 +233,7 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
                         Constraint con = null;
                         while (reader.Read())
                         {
+                            root.RaiseOnReadingOne(reader["Name"]);
                             if (parentId != (int)reader["ID"])
                             {
                                 parentId = (int)reader["ID"];
@@ -261,6 +266,7 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
                                     con.Index.IsPrimaryKey = true;
                                     con.Index.IsUniqueKey = false;
                                     con.Index.Type = (Index.IndexTypeEnum)(byte)reader["type"];
+                                    if (database.Info.MajorVersion >= 12) con.Index.BucketCount = System.Convert.ToInt64(reader["BucketCount"]);
                                     con.Index.Name = con.Name;
                                     if (database.Options.Ignore.FilterTableFileGroup)
                                         con.Index.FileGroup = reader["FileGroup"].ToString();
@@ -274,6 +280,7 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
                                 ccon.Name = (string)reader["ColumnName"];
                                 ccon.IsIncluded = (bool)reader["is_included_column"];
                                 ccon.Order = (bool)reader["is_descending_key"];
+                                if (database.Info.MajorVersion >= 12) ccon.KeyOrder = System.Convert.ToInt32(reader["MemoryKeyOrdinal"]);
                                 ccon.KeyOrder = (byte)reader["key_ordinal"];
                                 ccon.Id = (int)reader["column_id"];
                                 ccon.DataTypeId = (int)reader["user_type_id"];

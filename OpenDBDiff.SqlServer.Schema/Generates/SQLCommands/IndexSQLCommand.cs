@@ -1,10 +1,21 @@
-﻿using OpenDBDiff.SqlServer.Schema.Model;
+using OpenDBDiff.SqlServer.Schema.Model;
 using System.Text;
 
 namespace OpenDBDiff.SqlServer.Schema.Generates.SQLCommands
 {
     internal static class IndexSQLCommand
     {
+        public static string Get(DatabaseInfo info)
+        {
+            var sql = Get(info.Version, info.Edition);
+            if (info.MajorVersion >= 12)
+                sql = sql.Replace("I.type,", "I.type, ISNULL(HI.bucket_count,0) AS BucketCount,")
+                    .Replace("FROM sys.indexes I ", "FROM sys.indexes I LEFT JOIN (SELECT object_id, index_id, bucket_count FROM sys.hash_indexes) HI ON HI.object_id=I.object_id AND HI.index_id=I.index_id ")
+                    .Replace("INNER JOIN sys.data_spaces", "LEFT JOIN sys.data_spaces")
+                    .Replace("I.type IN (1,2,3)", "I.type IN (1,2,3,5,6,7)");
+            return sql;
+        }
+
         public static string Get(DatabaseInfo.SQLServerVersion version, DatabaseInfo.SQLServerEdition edition)
         {
             switch (version)

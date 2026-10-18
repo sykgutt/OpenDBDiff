@@ -199,6 +199,7 @@ namespace OpenDBDiff.SqlServer.Schema.Model
 
         public override SQLScriptList ToSqlDiff(ICollection<ISchemaBase> schemas)
         {
+            MemoryOptimizedTableSql.Validate(this, schemas);
             var isAzure10 = this.Info.Version == DatabaseInfo.SQLServerVersion.SQLServerAzure10;
 
             var listDiff = new SQLScriptList();

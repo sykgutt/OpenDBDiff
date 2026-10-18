@@ -122,10 +122,12 @@ namespace OpenDBDiff.Abstractions.Schema.Model
         public virtual SQLScriptList ToSqlDiff(ICollection<ISchemaBase> schemas)
         {
             SQLScriptList listDiff = new SQLScriptList();
-            foreach (var item in this.Where(item => (schemas.Count() == 0 || schemas.FirstOrDefault(sch => sch.Id == item.Id || (sch.Parent != null && sch.Parent.Id == item.Id)) != default(ISchemaBase))))
+            foreach (var item in this.Where(item => (schemas.Count() == 0 || schemas.FirstOrDefault(sch => (sch.ObjectType == item.ObjectType && sch.FullName == item.FullName) || (sch.Parent != null && sch.Parent.ObjectType == item.ObjectType && sch.Parent.FullName == item.FullName)) != default(ISchemaBase))))
             {
                 item.ResetWasInsertInDiffList();
-                var childrenSchemas = schemas.Where(s => s.Parent != null && s.Parent.Id == item.Id).ToList();
+                var childrenSchemas = schemas.Any(s => s.ObjectType == item.ObjectType && s.FullName == item.FullName)
+                    ? new List<ISchemaBase>()
+                    : schemas.Where(s => s.Parent != null && s.Parent.ObjectType == item.ObjectType && s.Parent.FullName == item.FullName).ToList();
                 listDiff.AddRange(item.ToSqlDiff(childrenSchemas).WarnMissingScript(item));
             }
             return listDiff;

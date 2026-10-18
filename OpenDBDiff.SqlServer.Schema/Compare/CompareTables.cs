@@ -11,6 +11,17 @@ namespace OpenDBDiff.SqlServer.Schema.Compare
             if (node.Status != ObjectStatus.Drop)
             {
                 Table tablaOriginal = originFields[node.FullName];
+                if (tablaOriginal.IsMemoryOptimized || node.IsMemoryOptimized)
+                {
+                    var desired = (Table)node.Clone(originFields.Parent);
+                    desired.Id = tablaOriginal.Id;
+                    desired.OriginalTable = (Table)tablaOriginal.Clone(originFields.Parent);
+                    desired.SchemaBoundDependents.Clear();
+                    desired.SchemaBoundDependents.AddRange(tablaOriginal.SchemaBoundDependents);
+                    desired.Status = MemoryOptimizedTableSql.SameDefinition(tablaOriginal, desired) ? ObjectStatus.Original : ObjectStatus.Alter;
+                    originFields[node.FullName] = desired;
+                    return;
+                }
                 tablaOriginal.OriginalTable = (Table)originFields[node.FullName].Clone((Database)tablaOriginal.Parent);
                 (new CompareColumns()).GenerateDifferences<Table>(tablaOriginal.Columns, node.Columns);
                 (new CompareConstraints()).GenerateDifferences<Table>(tablaOriginal.Constraints, node.Constraints);

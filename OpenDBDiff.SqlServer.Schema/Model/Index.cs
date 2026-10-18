@@ -13,7 +13,8 @@ namespace OpenDBDiff.SqlServer.Schema.Model
             Clustered = 1,
             Nonclustered = 2,
             XML = 3,
-            GEO = 4
+            GEO = 4,
+            Hash = 7
         }
 
         public Index(ISchemaBase parent)
@@ -32,6 +33,7 @@ namespace OpenDBDiff.SqlServer.Schema.Model
                 Columns = this.Columns.Clone(),
                 FillFactor = this.FillFactor,
                 FileGroup = this.FileGroup,
+                BucketCount = this.BucketCount,
                 Id = this.Id,
                 IgnoreDupKey = this.IgnoreDupKey,
                 IsAutoStatistics = this.IsAutoStatistics,
@@ -51,6 +53,7 @@ namespace OpenDBDiff.SqlServer.Schema.Model
         }
 
         public string FileGroup { get; set; }
+        public long BucketCount { get; set; }
 
         public Boolean SortInTempDb { get; set; }
 
@@ -102,7 +105,7 @@ namespace OpenDBDiff.SqlServer.Schema.Model
             if (origin.IsPadded != destination.IsPadded) return false;
             if (origin.IsPrimaryKey != destination.IsPrimaryKey) return false;
             if (origin.IsUniqueKey != destination.IsUniqueKey) return false;
-            if (origin.Type != destination.Type) return false;
+            if (origin.Type != destination.Type || origin.BucketCount != destination.BucketCount) return false;
             if (origin.SortInTempDb != destination.SortInTempDb) return false;
             if (!origin.FilterDefintion.Equals(destination.FilterDefintion)) return false;
             if (!IndexColumns.Compare(origin.Columns, destination.Columns)) return false;
@@ -121,7 +124,7 @@ namespace OpenDBDiff.SqlServer.Schema.Model
             if (origin.IsPadded != destination.IsPadded) return false;
             if (origin.IsPrimaryKey != destination.IsPrimaryKey) return false;
             if (origin.IsUniqueKey != destination.IsUniqueKey) return false;
-            if (origin.Type != destination.Type) return false;
+            if (origin.Type != destination.Type || origin.BucketCount != destination.BucketCount) return false;
             if (origin.SortInTempDb != destination.SortInTempDb) return false;
             if (!origin.FilterDefintion.Equals(destination.FilterDefintion)) return false;
             if (!IndexColumns.Compare(origin.Columns, destination.Columns)) return false;
@@ -142,6 +145,7 @@ namespace OpenDBDiff.SqlServer.Schema.Model
 
         public override string ToSql()
         {
+            if (Parent is Table && ((Table)Parent).IsMemoryOptimized) return MemoryOptimizedTableSql.IndexDefinition(this);
             Database database = null;
             ISchemaBase current = this;
             while (database == null && current.Parent != null)

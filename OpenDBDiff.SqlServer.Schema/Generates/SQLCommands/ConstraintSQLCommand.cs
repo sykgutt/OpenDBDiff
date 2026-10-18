@@ -5,6 +5,23 @@ namespace OpenDBDiff.SqlServer.Schema.Generates.SQLCommands
 {
     internal static class ConstraintSQLCommand
     {
+        public static string GetPrimaryKey(DatabaseInfo info)
+        {
+            return WithHashMetadata(GetPrimaryKey(info.Version, null), info);
+        }
+
+        public static string GetUniqueKey(DatabaseInfo info)
+        {
+            return WithHashMetadata(GetUniqueKey(info.Version, info.Edition), info);
+        }
+
+        private static string WithHashMetadata(string sql, DatabaseInfo info)
+        {
+            if (info.MajorVersion < 12) return sql;
+            return sql.Replace("I.type,", "I.type, IC.key_ordinal AS MemoryKeyOrdinal, ISNULL(HI.bucket_count,0) AS BucketCount,")
+                .Replace("FROM sys.indexes I ", "FROM sys.indexes I LEFT JOIN (SELECT object_id, index_id, bucket_count FROM sys.hash_indexes) HI ON HI.object_id=I.object_id AND HI.index_id=I.index_id ");
+        }
+
         public static string GetUniqueKey(DatabaseInfo.SQLServerVersion version, DatabaseInfo.SQLServerEdition edition)
         {
             switch (version)

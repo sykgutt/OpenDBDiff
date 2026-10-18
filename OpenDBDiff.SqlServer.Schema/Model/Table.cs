@@ -30,6 +30,10 @@ namespace OpenDBDiff.SqlServer.Schema.Model
 
         public string CompressType { get; set; }
 
+        public bool IsMemoryOptimized { get; set; }
+        public string Durability { get; set; } = "SCHEMA_AND_DATA";
+        public List<string> SchemaBoundDependents { get; private set; } = new List<string>();
+
         public string FileGroupText { get; set; }
 
         public Boolean HasChangeDataCapture { get; set; }
@@ -161,6 +165,8 @@ namespace OpenDBDiff.SqlServer.Schema.Model
                 Id = Id,
                 Guid = Guid,
                 Status = Status,
+                IsMemoryOptimized = IsMemoryOptimized,
+                Durability = Durability,
                 FileGroup = FileGroup,
                 FileGroupText = FileGroupText,
                 FileGroupStream = FileGroupStream,
@@ -170,6 +176,7 @@ namespace OpenDBDiff.SqlServer.Schema.Model
                 HasChangeDataCapture = HasChangeDataCapture,
                 dependenciesCount = DependenciesCount
             };
+            table.SchemaBoundDependents.AddRange(SchemaBoundDependents);
             table.Columns = Columns.Clone(table);
             table.Options = Options.Clone(table);
             table.CompressType = CompressType;
@@ -190,6 +197,7 @@ namespace OpenDBDiff.SqlServer.Schema.Model
         /// </summary>
         public string ToSql(Boolean showFK)
         {
+            if (IsMemoryOptimized) return MemoryOptimizedTableSql.Create(this);
             Database database = null;
             ISchemaBase current = this;
             while (database == null && current.Parent != null)
@@ -330,6 +338,7 @@ namespace OpenDBDiff.SqlServer.Schema.Model
         /// </summary>
         public override SQLScriptList ToSqlDiff(ICollection<ISchemaBase> schemas)
         {
+            if (MemoryOptimizedTableSql.IsMemoryTable(this)) return MemoryOptimizedTableSql.Diff(this, schemas);
             var listDiff = new SQLScriptList();
 
             if (Status != ObjectStatus.Original)

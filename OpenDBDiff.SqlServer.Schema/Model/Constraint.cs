@@ -214,6 +214,9 @@ namespace OpenDBDiff.SqlServer.Schema.Model
         /// </summary>
         public override string ToSql()
         {
+            if (Parent is Table && ((Table)Parent).IsMemoryOptimized &&
+                (Type == ConstraintType.PrimaryKey || Type == ConstraintType.Unique || Type == ConstraintType.Check))
+                return MemoryOptimizedTableSql.ConstraintDefinition(this);
             if (this.Type == ConstraintType.PrimaryKey)
             {
                 return ToSQLGeneric(ConstraintType.PrimaryKey);

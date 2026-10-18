@@ -43,6 +43,8 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
         }
 
         public SqlOption Options { get; set; }
+        public string LastReadObject { get; private set; }
+        public string LastReadStage { get; private set; }
 
         private event ProgressEventHandler.ProgressHandler OnReading;
 
@@ -55,12 +57,15 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
 
         public void RaiseOnReading(ProgressEventArgs e)
         {
+            LastReadStage = e.Message;
+            LastReadObject = "initializing metadata query";
             this.currentlyReading = e;
             if (OnReading != null) OnReading(e);
         }
 
         public void RaiseOnReadingOne(object name)
         {
+            LastReadObject = Convert.ToString(name);
             if (name != null && this.OnReading != null && this.currentlyReading != null)
             {
                 var eOne = new ProgressEventArgs(this.currentlyReading.Message, this.currentlyReading.Progress);
@@ -91,7 +96,8 @@ namespace OpenDBDiff.SqlServer.Schema.Generates
 
             if (Options.Ignore.FilterIndex)
             {
-                (new GenerateIndex(this)).Fill(databaseSchema, ConnectionString);
+                try { (new GenerateIndex(this)).Fill(databaseSchema, ConnectionString); }
+                catch (Exception ex) { throw new SchemaException("Reading indexes in " + Name + " (" + LastReadObject + "): " + ex.Message, ex); }
                 (new GenerateFullTextIndex(this)).Fill(databaseSchema, ConnectionString);
             }
             (new GenerateUserDataTypes(this)).Fill(databaseSchema, ConnectionString, messages);
