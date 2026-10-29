@@ -1,5 +1,31 @@
 # Seguimiento del proyecto
 
+## 2026-10-28: exportación CSV de la comparación
+
+Se implementó el plan aprobado. `Export CSV` está entre `External diff` y `Update all`; el panel mantiene una columna con desplazamiento vertical. Tras una comparación correcta se captura una instantánea de los objetos principales, incluidos iguales, sin depender de filtros, casillas ni expansión. Al comenzar otra comparación se limpia el reporte y se deshabilita el botón, incluso si el intento falla.
+
+`Export/DiffCsvReport.cs` recorre las colecciones `SchemaNode` sin entrar en subobjetos ni generar SQL. Usa las etiquetas del árbol y separa las tablas en memoria. Conserva las cinco columnas solicitadas y los cinco estados, con prioridad de reconstrucción sobre formato y otros cambios. `changed item data` sigue siendo una etiqueta de diferencias de definición/estructura, no una comparación de filas.
+
+El diálogo sugiere `DiffNombreBaseDerecha.csv`, permite elegir ruta y confirma sobrescritura. El reporte conserva el nombre y los valores de la comparación aunque cambien después las conexiones. Escribe coma, UTF-8 con BOM y CRLF, escapa campos y ordena ordinalmente por tipo/esquema/nombre. La escritura usa temporal y reemplazo final; la prueba con destino bloqueado confirma que el archivo anterior se conserva y el temporal desaparece.
+
+Validación de esta entrega:
+
+| Comprobación | Resultado |
+|---|---|
+| Pruebas iniciales del exportador | Ocho fallos esperados antes de implementar filas, nombre y escritura |
+| Build Debug | Correcto, siete proyectos; mismas referencias net452 y MSTest documentadas |
+| Suite MSTest completa | **69/69** correctas, incluidas nueve pruebas nuevas de CSV |
+| TRX | `TestResults/sykgu_DESKTOP-6FBORC3_2026-10-28_23_26_45.trx` |
+| Probe WinForms sintético | Correcto: orden del botón, desplazamiento, habilitación independiente del script, cancelación, nombre capturado, filtros/casillas/nodos contraídos y fallo de nueva comparación |
+| Exportación desde evento real del botón | Archivo con cabecera y tres objetos de prueba; omite columna hija y conserva objeto igual oculto |
+| Verificación visual | Imagen revisada: `TestResults/CsvExport/csv-export-panel.png` |
+
+La compilación dentro del entorno restringido quedó sin salida y se interrumpió. MSBuild, MSTest y el probe funcionaron fuera de él. Los probes se ejecutaron con modelos sintéticos, omitiendo la configuración guardada y sin abrir conexiones SQL. El selector nativo de archivos se sustituyó por respuestas programadas; sus propiedades y el evento de clic sí se comprobaron. No se ejecutaron scripts SQL ni se hicieron commits o push.
+
+Las herramientas MCP del grafo no estaban expuestas; en la planificación se intentó el CLI y falló la coordinación por DACL. La evidencia de esta implementación procede de lectura directa de fuentes, build, pruebas y probe. No se cambiaron permisos ni configuración de Codebase Memory.
+
+Archivos registrados en los proyectos clásicos: exportador, pruebas unitarias enlazadas y probe independiente. Se usa `Microsoft.VisualBasic.FileIO.TextFieldParser` únicamente en las pruebas para volver a leer el CSV; no se añadieron paquetes. Documentación de uso y reproducción: [ExportacionCsv.md](ExportacionCsv.md).
+
 ## Estado al 2026-10-17
 
 - Rama observada: `OpenDiffBuru`.
@@ -160,3 +186,13 @@ El mensaje sobre `[inMem].[ins_NativeinMem_TransactionVPH]` se reprodujo y se re
 El bloqueo era demasiado amplio por dos motivos. Trataba cualquier dependencia enlazada al esquema como impedimento aunque la operación solo quitara un DEFAULT, y comparaba `IsAutoStatistics`, opción convencional que no forma parte de la sintaxis emitida para un índice en memoria. `MemoryOptimizedTableSql` ahora compara solamente las propiedades representables del índice y permite diferencias exclusivamente de DEFAULT; conserva el bloqueo para cambios estructurales, conversiones, reconstrucciones y demás operaciones protegidas.
 
 Validación: las regresiones fallaron antes del cambio y pasaron después; el probe de Curiosity, de solo lectura, confirmó `ScriptAllowed=True` y `DropsTimestampDefault=True`. El laboratorio en SQL Server 17.0.1145.4 creó un procedimiento nativo enlazado a una tabla desechable, aplicó el cambio de DEFAULT, conservó el procedimiento y obtuvo una segunda comparación sin diferencias. Las bases `OpenDBDiffMemoryTest_91edb5bd3257459abedf1c702033363c_Actual` y `_Desired` se eliminaron al finalizar. No se ejecutó DDL en CuriosityPOS ni CuriosityPROD.
+
+## 2026-10-28: nombre CSV y columna Acción
+
+Se capturan los nombres de source y target antes de comparar, evitando la pérdida de Name en Database.Clone. El CSV agrega Acción como sexta columna con los textos acordados y conserva los nombres reales en el contenido. Se rechazan nombres vacíos y se sanea solamente el nombre de archivo. Los consumidores de cinco columnas deben aceptar la sexta.
+
+Build Debug correcto; 72/72 pruebas MSTest y probe WinForms sintético correctos. Se cubren copia sin nombre, estados, nombres especiales, seis columnas, cancelación y escritura segura. El probe sustituye el diálogo nativo; no se ejecutaron operaciones SQL.
+
+## 2026-10-29: etiqueta de objeto nuevo
+
+La columna Tipo de diferencia usa `new item` para objetos nuevos, en lugar de `Nuevo item`. La columna Acción conserva su descripción de creación.

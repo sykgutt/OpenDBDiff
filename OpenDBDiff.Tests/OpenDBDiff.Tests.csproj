@@ -47,6 +47,7 @@
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Data" />
+    <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="System.Security" />
     <Reference Include="LiteDB">
       <HintPath>..\packages\LiteDB.5.0.9\lib\net45\LiteDB.dll</HintPath>
@@ -82,6 +83,10 @@
     <Compile Include="Model\MemoryOptimizedTests.cs" />
     <Compile Include="Model\FormatCodeTests.cs" />
     <Compile Include="ExternalDiff\ExternalDiffHelperTests.cs" />
+    <Compile Include="Export\DiffCsvReportTests.cs" />
+    <Compile Include="..\OpenDBDiff\Export\DiffCsvReport.cs">
+      <Link>Export\DiffCsvReport.cs</Link>
+    </Compile>
     <Compile Include="Settings\SettingsDatabaseTests.cs" />
     <Compile Include="Settings\SqlConnectionStringCompatibilityTests.cs" />
     <Compile Include="..\OpenDBDiff.SqlServer.Ui\Front\Util\SqlConnectionStringCompatibility.cs">
@@ -119,6 +124,7 @@
     <None Include="packages.config" />
     <None Include="Integration\MemoryLab.cs" />
     <None Include="Integration\MemoryGuiProbe.cs" />
+    <None Include="Integration\CsvExportGuiProbe.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="SqlSnippets\Triggers\no-brackets.sql" />

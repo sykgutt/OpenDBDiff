@@ -191,6 +191,7 @@
     <Compile Include="ExternalDiff\ExternalDiffPresets.cs" />
     <Compile Include="ExternalDiff\ExternalDiffObjectCollector.cs" />
     <Compile Include="ExternalDiff\ExternalDiffLauncher.cs" />
+    <Compile Include="Export\DiffCsvReport.cs" />
     <Compile Include="UI\ExternalDiffSettingsForm.cs">
       <SubType>Form</SubType>
     </Compile>

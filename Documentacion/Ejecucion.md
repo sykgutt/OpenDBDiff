@@ -59,6 +59,10 @@ La GUI también contiene acciones de actualización de objetos mediante `Updater
 
 **Compare data** es una función auxiliar para una tabla existente en ambas bases; no es una sincronización general de datos.
 
+### Exportar la comparación a CSV
+
+Después de **Compare**, pulsar **Export CSV**, entre **External diff** y **Update all**. Elegir ruta y nombre; la sugerencia es `DiffNombreBaseDerecha.csv`. Incluye todos los objetos principales, incluso iguales y ocultos por filtros, sin filas separadas para hijos. Permanece disponible aunque se bloquee la generación del script. Detalles de formato, estados y verificación: [ExportacionCsv.md](ExportacionCsv.md).
+
 ### Comparador externo
 
 Después de comparar, usar **External diff** para el objeto seleccionado. Su menú contextual permite **Compare all differences** y **Configure external tool...**.
@@ -145,7 +149,7 @@ $testReferences = 'C:\Program Files\Microsoft Visual Studio\2022\Community\Commo
 
 ## Tablas optimizadas para memoria y probes de integración
 
-Schema separa `Tables` y `Memory-Optimized Tables` con conteos visibles/total. Una dependencia o diferencia no soportada conserva el árbol, muestra el motivo y bloquea la exportación completa. Excluir la tabla afectada y volver a generar permite trabajar con los demás objetos. Una selección vacía conserva la semántica anterior: significa todos los objetos. Detalles: [TablasEnMemoria.md](TablasEnMemoria.md).
+Schema separa `Tables` y `Memory-Optimized Tables` con conteos visibles/total. Una dependencia o diferencia no soportada conserva el árbol, muestra el motivo y bloquea la exportación completa del script SQL; el CSV de comparación permanece disponible. Excluir la tabla afectada y volver a generar permite trabajar con los demás objetos. Una selección vacía conserva la semántica anterior: significa todos los objetos. Detalles: [TablasEnMemoria.md](TablasEnMemoria.md).
 
 Los siguientes probes son programas independientes, no pruebas automáticas de MSTest. Compilar primero la solución Debug con el comando anterior. Se necesitan el compilador .NET Framework y SQL Server local con autenticación integrada. No contienen credenciales.
 

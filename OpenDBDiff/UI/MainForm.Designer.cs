@@ -75,6 +75,7 @@ namespace OpenDBDiff.UI
             this.btnUpdate = new System.Windows.Forms.Button();
             this.btnCompareTableData = new System.Windows.Forms.Button();
             this.btnExternalDiff = new System.Windows.Forms.Button();
+            this.btnExportCsv = new System.Windows.Forms.Button();
             this.menuExternalDiff = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.menuCompareSelected = new System.Windows.Forms.ToolStripMenuItem();
             this.menuCompareAll = new System.Windows.Forms.ToolStripMenuItem();
@@ -454,10 +455,12 @@ namespace OpenDBDiff.UI
             this.PanelActions.Controls.Add(this.btnUpdate);
             this.PanelActions.Controls.Add(this.btnCompareTableData);
             this.PanelActions.Controls.Add(this.btnExternalDiff);
+            this.PanelActions.Controls.Add(this.btnExportCsv);
             this.PanelActions.Controls.Add(this.btnUpdateAll);
             this.PanelActions.AutoScroll = true;
             this.PanelActions.Dock = System.Windows.Forms.DockStyle.Right;
             this.PanelActions.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
+            this.PanelActions.WrapContents = false;
             this.PanelActions.Location = new System.Drawing.Point(842, 175);
             this.PanelActions.Name = "PanelActions";
             this.PanelActions.Size = new System.Drawing.Size(98, 483);
@@ -612,16 +615,31 @@ namespace OpenDBDiff.UI
             this.menuConfigureTool.Text = "Configure external tool...";
             this.menuConfigureTool.Click += new System.EventHandler(this.menuConfigureTool_Click);
             // 
+            // btnExportCsv
+            //
+            this.btnExportCsv.Enabled = false;
+            this.btnExportCsv.Image = global::OpenDBDiff.Properties.Resources.save_as;
+            this.btnExportCsv.ImageAlign = System.Drawing.ContentAlignment.TopCenter;
+            this.btnExportCsv.Location = new System.Drawing.Point(3, 430);
+            this.btnExportCsv.Name = "btnExportCsv";
+            this.btnExportCsv.Size = new System.Drawing.Size(95, 55);
+            this.btnExportCsv.TabIndex = 12;
+            this.btnExportCsv.Text = "Export CSV";
+            this.btnExportCsv.TextAlign = System.Drawing.ContentAlignment.BottomCenter;
+            this.btnExportCsv.UseVisualStyleBackColor = true;
+            this.btnExportCsv.Click += new System.EventHandler(this.btnExportCsv_Click);
+            this.toolTip1.SetToolTip(this.btnExportCsv, "Export all top-level objects from the last comparison, including unchanged objects.");
+            //
             // btnUpdateAll
             // 
             this.btnUpdateAll.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnUpdateAll.Enabled = false;
             this.btnUpdateAll.Image = global::OpenDBDiff.Properties.Resources.database_refresh;
             this.btnUpdateAll.ImageAlign = System.Drawing.ContentAlignment.TopCenter;
-            this.btnUpdateAll.Location = new System.Drawing.Point(3, 430);
+            this.btnUpdateAll.Location = new System.Drawing.Point(3, 491);
             this.btnUpdateAll.Name = "btnUpdateAll";
             this.btnUpdateAll.Size = new System.Drawing.Size(95, 55);
-            this.btnUpdateAll.TabIndex = 10;
+            this.btnUpdateAll.TabIndex = 13;
             this.btnUpdateAll.Text = "Update all";
             this.btnUpdateAll.TextAlign = System.Drawing.ContentAlignment.BottomCenter;
             this.btnUpdateAll.UseVisualStyleBackColor = true;
@@ -784,6 +802,7 @@ namespace OpenDBDiff.UI
         private Button btnNewProject;
         private Button btnCompareTableData;
         private Button btnExternalDiff;
+        private Button btnExportCsv;
         private ContextMenuStrip menuExternalDiff;
         private ToolStripMenuItem menuCompareSelected;
         private ToolStripMenuItem menuCompareAll;

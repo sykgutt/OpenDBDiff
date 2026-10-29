@@ -8,6 +8,7 @@ using OpenDBDiff.Abstractions.Schema.Model;
 using OpenDBDiff.Abstractions.Ui;
 using OpenDBDiff.Extensions;
 using OpenDBDiff.ExternalDiff;
+using OpenDBDiff.Export;
 using OpenDBDiff.Settings;
 using ScintillaNET;
 using System;
@@ -41,6 +42,46 @@ namespace OpenDBDiff.UI
         }
 
         private bool scriptGenerationAllowed;
+        private DiffCsvReport csvReport;
+
+        private void SetCsvExportComparison(IDatabase comparison, string sourceName, string targetName)
+        {
+            csvReport = new DiffCsvReport(comparison, sourceName, targetName);
+            btnExportCsv.Enabled = true;
+        }
+
+        protected virtual DialogResult ShowCsvSaveDialog(SaveFileDialog dialog)
+        {
+            return dialog.ShowDialog(this);
+        }
+
+        private void btnExportCsv_Click(object sender, EventArgs e)
+        {
+            if (csvReport == null)
+                return;
+
+            try
+            {
+                using (var dialog = new SaveFileDialog())
+                {
+                    dialog.Title = "Export comparison to CSV";
+                    dialog.Filter = "CSV files (*.csv)|*.csv";
+                    dialog.DefaultExt = "csv";
+                    dialog.AddExtension = true;
+                    dialog.OverwritePrompt = true;
+                    dialog.CheckPathExists = true;
+                    dialog.FileName = csvReport.SuggestedFileName;
+                    if (ShowCsvSaveDialog(dialog) != DialogResult.OK)
+                        return;
+
+                    csvReport.Save(dialog.FileName);
+                }
+            }
+            catch (Exception ex)
+            {
+                HandleException("Exporting comparison to CSV", ex);
+            }
+        }
 
         private void SetSynchronizedScript(IDatabase database, ICollection<ISchemaBase> selection)
         {
@@ -67,12 +108,15 @@ namespace OpenDBDiff.UI
 
         private void StartComparison()
         {
+            btnExportCsv.Enabled = false;
+            csvReport = null;
             ProgressForm progress = null;
             string errorLocation = null;
             try
             {
-                if ((!String.IsNullOrEmpty(ProjectSelectorHandler.GetSourceDatabaseName()) &&
-                     (!String.IsNullOrEmpty(ProjectSelectorHandler.GetDestinationDatabaseName()))))
+                var sourceName = ProjectSelectorHandler.GetSourceDatabaseName();
+                var targetName = ProjectSelectorHandler.GetDestinationDatabaseName();
+                if (!String.IsNullOrWhiteSpace(sourceName) && !String.IsNullOrWhiteSpace(targetName))
                 {
                     Options = Options ?? this.ProjectSelectorHandler.GetDefaultProjectOptions();
                     var leftGenerator = this.ProjectSelectorHandler.SetSourceGenerator(LeftDatabaseSelector.ConnectionString, Options);
@@ -112,6 +156,7 @@ namespace OpenDBDiff.UI
                     btnUpdateAll.Enabled = true;
                     btnExternalDiff.Enabled = true;
                     menuCompareAll.Enabled = true;
+                    SetCsvExportComparison(progress.Destination, sourceName, targetName);
                 }
                 else
                     MessageBox.Show(Owner, "Please select a valid connection string", "ERROR", MessageBoxButtons.OK,

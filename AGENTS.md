@@ -56,6 +56,7 @@ La CLI transforma `before` → `after`, genera el archivo y devuelve 0/1. Sin `-
 - Abrir la configuración mediante `SettingsDatabase.Open()`, tanto para proyectos como para el comparador externo. Reconoce archivos LiteDB normales y archivos protegidos con DPAPI del usuario actual; no abrir un blob DPAPI directamente con `LiteDatabase` ni reemplazarlo por una base vacía. Los cambios en un archivo protegido conservan el cifrado y generan un respaldo cifrado `.bak` mediante reemplazo atómico.
 - `SqlConnectionStringCompatibility.Parse` admite el alias guardado `Trust Server Certificate` como `TrustServerCertificate` sin sustituir texto dentro de contraseñas.
 - Los exports del comparador externo viven en `%TEMP%\OpenDBDiff\extdiff` y se limpian entre sesiones de comparación.
+- `Export CSV` usa `Export/DiffCsvReport.cs`: instantánea de todos los objetos principales, incluidos iguales, sin depender de filtros, selección o expansión. Nombre sugerido `Diff<BaseDerecha>.csv`; mantener las seis columnas y la prioridad de estados documentadas en [ExportacionCsv.md](Documentacion/ExportacionCsv.md). El CSV no requiere generar SQL y debe estar disponible cuando solo se bloquee el script.
 
 ## Convenciones y alcance
 

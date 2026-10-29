@@ -9,6 +9,7 @@ Esta carpeta documenta la arquitectura, el flujo de ejecución, las tecnologías
 | Documento | Descripción |
 |---|---|
 | [TablasEnMemoria.md](TablasEnMemoria.md) | Tablas en memoria, sección Schema, generación SQL y bloqueos |
+| [ExportacionCsv.md](ExportacionCsv.md) | Botón Export CSV, columnas, clasificación, escritura y probe WinForms |
 | [Ejecucion.md](Ejecucion.md) | Requisitos, restauración, compilación, GUI, CLI, pruebas y diagnóstico |
 | [Seguimiento.md](Seguimiento.md) | Estado del checkout, validaciones realizadas y pendientes |
 | [CodebaseMemory.md](CodebaseMemory.md) | Integración MCP, consultas, cobertura y preparación de otra máquina |
