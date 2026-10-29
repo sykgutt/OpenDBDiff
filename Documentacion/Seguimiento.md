@@ -160,19 +160,3 @@ El mensaje sobre `[inMem].[ins_NativeinMem_TransactionVPH]` se reprodujo y se re
 El bloqueo era demasiado amplio por dos motivos. Trataba cualquier dependencia enlazada al esquema como impedimento aunque la operación solo quitara un DEFAULT, y comparaba `IsAutoStatistics`, opción convencional que no forma parte de la sintaxis emitida para un índice en memoria. `MemoryOptimizedTableSql` ahora compara solamente las propiedades representables del índice y permite diferencias exclusivamente de DEFAULT; conserva el bloqueo para cambios estructurales, conversiones, reconstrucciones y demás operaciones protegidas.
 
 Validación: las regresiones fallaron antes del cambio y pasaron después; el probe de Curiosity, de solo lectura, confirmó `ScriptAllowed=True` y `DropsTimestampDefault=True`. El laboratorio en SQL Server 17.0.1145.4 creó un procedimiento nativo enlazado a una tabla desechable, aplicó el cambio de DEFAULT, conservó el procedimiento y obtuvo una segunda comparación sin diferencias. Las bases `OpenDBDiffMemoryTest_91edb5bd3257459abedf1c702033363c_Actual` y `_Desired` se eliminaron al finalizar. No se ejecutó DDL en CuriosityPOS ni CuriosityPROD.
-
-## 2026-10-17: organización de commits y push del proyecto
-
-Solicitud: generar commits y push del proyecto documentando los cambios en unidades lógicas.
-
-Se organizaron los cambios en commits atómicos y verificados de manera incremental:
-
-1. `feat(schema)`: soporte para tablas optimizadas para memoria en el motor y modelo SQL Server (`OpenDBDiff.Abstractions.Schema`, `OpenDBDiff.SqlServer.Schema`).
-2. `feat(ui,settings)`: comparador externo (WinMerge/Beyond Compare), persistencia DPAPI transparente en `SettingsDatabase`, compatibilidad con alias de certificado en `SqlServerConnectFront`, sección dedicada de tablas en memoria en `SchemaTreeView`, validación preventiva en `MainForm`/`DataCompareForm`, y suite completa de pruebas unitarias/sondas de integración.
-3. `docs`: documentación técnica, arquitectura, diagramas, guías de ejecución, especificación de tablas en memoria y configuración MCP de Codebase Memory.
-
-Validación previa y posterior a la creación de commits:
-- Build Debug con MSBuild (7 proyectos): **0 advertencias, 0 errores**.
-- MSTest: **60/60 pruebas exitosas**.
-- Publicación mediante `git push origin OpenDiffBuru`.
-
