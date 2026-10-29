@@ -12,6 +12,8 @@ Al iniciar una sesión:
 4. Leer [Documentacion/Ejecucion.md](Documentacion/Ejecucion.md) antes de compilar o ejecutar. Consultar [Arquitectura](Documentacion/Arquitectura.md) y [Documento técnico](Documentacion/DocumentoTecnico.md) según el alcance.
 5. Ejecutar la tarea solicitada preservando cambios ajenos y registrar el resultado verificable al finalizar.
 
+Para migración o reconstrucción, comenzar por [Documentacion/migración/README.md](Documentacion/migración/README.md) y [Continuidad](Documentacion/migración/Continuidad.md). La guía prepara 4.8.1 como etapa previa a .NET 10.0.14; **no se ha cambiado el target 4.5.2**. La [especificación funcional](Documentacion/migración/Especificación/README.md) distingue contratos actuales, pruebas históricas y brechas pendientes; no convertir esas brechas en requisitos de réplica ni ejecutar una migración por inferencia.
+
 ## Stack y mapa
 
 - Windows; C#; .NET Framework **4.5.2**; proyectos `.csproj` clásicos y `packages.config`.

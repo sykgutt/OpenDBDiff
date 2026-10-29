@@ -4,6 +4,8 @@ Versión documentada: **0.13.0** · Framework: **.NET Framework 4.5.2** · Licen
 
 Este documento describe tecnologías, frameworks, modelos, algoritmos y puntos de extensión. Complementa [Arquitectura.md](Arquitectura.md).
 
+Revisión documental 2026-10-29: para contratos observables, escenarios y brechas actuales consultar la [especificación funcional](migración/Especificación/README.md). La [migración 4.8.1](migración/Migracion-net481.md) está documentada, no ejecutada.
+
 ## 1. Stack tecnológico
 
 ### 1.1 Plataforma
@@ -157,7 +159,7 @@ Las consultas viven como recursos embebidos en [`SQLQueries/`](../OpenDBDiff.Sql
 
 Progreso: `ProgressEventArgs` → `IGenerator.OnProgress` → barras de `ProgressForm`.
 
-Errores parciales (p. ej. en tablas) se acumulan en `MessageLog` y no abortan necesariamente toda la carga. Fallos de versión pueden lanzar `SchemaException`.
+Los errores de tablas/columnas/restricciones e índices abortan con contexto. Otros lectores (vistas, triggers, tipos de usuario y propiedades extendidas) todavía acumulan `MessageLog` sin abortar necesariamente toda la carga; no se garantiza una política uniforme. FileGroups relanza sus excepciones. Ver GAP-01 en la [trazabilidad](migración/Especificación/Trazabilidad.md). Fallos de versión pueden lanzar `SchemaException`.
 
 ## 5. Comparación
 
@@ -259,14 +261,14 @@ UI: `SqlOptionsFront` + `AddExclusionPatternForm`.
 
 - Archivo: `%LocalAppData%\OpenDBDiff\settings.liteDb`
 - Colección `projects`
-- Campos: connection strings, nombre, tipo `SQLServer`, `IsLastConfiguration`, opciones
+- Campos persistidos: connection strings, nombre, tipo `SQLServer`, `IsLastConfiguration`, identificador y fecha. `Options` lleva `[BsonIgnore]`; no se acredita persistencia de opciones entre sesiones (GAP-08 de la especificación).
 
 ## 8. Errores y diagnóstico
 
 | Capa | Comportamiento |
 |---|---|
 | `CompareDatabase` | `SchemaException` con inner exception |
-| `GenerateTables.Fill` | `MessageLog` (continúa) |
+| `GenerateTables.Fill` | Lanza `SchemaException` contextual; no devuelve inventario parcial de tablas |
 | `ProgressForm` | Captura, asigna `Error`, cierra |
 | `MainForm` | `ErrorForm` |
 | `SchemaException` | Log en `%TEMP%\OpenDBDiff.log` |
@@ -288,9 +290,9 @@ Proyecto: [`OpenDBDiff.Tests`](../OpenDBDiff.Tests/).
 | `SettingsDatabaseTests` | Lectura/guardado de configuración DPAPI, preservación del cifrado y respaldo, compatibilidad LiteDB y fallos sin sobrescritura |
 | `SqlConnectionStringCompatibilityTests` | Alias de certificado con espacios, preservación de valores y contraseñas con separadores |
 
-No hay tests de integración contra SQL Server, ni de WinForms, ni del CLI end-to-end.
+Existen probes independientes de laboratorio SQL/CLI y WinForms en `OpenDBDiff.Tests/Integration/`; no forman parte de la suite MSTest ordinaria ni equivalen a cobertura completa. Se añadieron `MemoryOptimizedTests` y `DiffCsvReportTests`; el inventario estático actual identifica 72 métodos. Resultados históricos y límites en [Seguimiento](Seguimiento.md), trazabilidad actual en [Especificación](migración/Especificación/Trazabilidad.md).
 
-Los helpers de comparación externa pertenecen a cambios locales presentes en esta rama; se compilan mediante archivos enlazados desde el proyecto de pruebas. Para comandos y resultados observados, consultar [Ejecucion.md](Ejecucion.md) y [Seguimiento.md](Seguimiento.md).
+Los helpers de comparación externa están versionados en esta rama; se compilan mediante archivos enlazados desde el proyecto de pruebas. Para comandos y resultados observados, consultar [Ejecucion.md](Ejecucion.md) y [Seguimiento.md](Seguimiento.md).
 
 ## 10. Build y CI
 

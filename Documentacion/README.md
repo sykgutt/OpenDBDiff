@@ -8,6 +8,7 @@ Esta carpeta documenta la arquitectura, el flujo de ejecución, las tecnologías
 
 | Documento | Descripción |
 |---|---|
+| [Migración y especificación](migración/README.md) | Continuidad, plan 4.8.1, especificación funcional y evaluación futura .NET 10/reconstrucción; migración no ejecutada |
 | [TablasEnMemoria.md](TablasEnMemoria.md) | Tablas en memoria, sección Schema, generación SQL y bloqueos |
 | [ExportacionCsv.md](ExportacionCsv.md) | Botón Export CSV, columnas, clasificación, escritura y probe WinForms |
 | [Ejecucion.md](Ejecucion.md) | Requisitos, restauración, compilación, GUI, CLI, pruebas y diagnóstico |

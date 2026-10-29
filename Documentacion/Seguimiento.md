@@ -196,3 +196,26 @@ Build Debug correcto; 72/72 pruebas MSTest y probe WinForms sintético correctos
 ## 2026-10-29: etiqueta de objeto nuevo
 
 La columna Tipo de diferencia usa `new item` para objetos nuevos, en lugar de `Nuevo item`. La columna Acción conserva su descripción de creación.
+
+## 2026-10-29: documentación de migración y especificación funcional
+
+Se implementó el plan documental aprobado, con equivalencia funcional y libertad de reorganización visual/interna. Baseline de fuentes: rama `OpenDiffBuru`, commit `4d3633876537599a29cb302070486682af3d1acf`; checkout limpio al inicio.
+
+Se creó [Documentacion/migración](migración/README.md) con **17 documentos**: índice, continuidad para otro chat, guía 4.8.1, evaluación migrar/reconstruir, plan/tareas y especificación en `Especificación/` (mapa, siete capacidades incluyendo datos auxiliares, inventario y trazabilidad). Se enlazó desde AGENTS e índice general. Se corrigieron afirmaciones obsoletas en DocumentoTecnico sobre errores del lector de tablas, integración, estado versionado de helpers y persistencia de opciones.
+
+La guía registra **4.8.1 como etapa previa a .NET 10.0.14**; distingue target, runtime y SDK, requisitos Windows, cambios previstos, pruebas y recuperación. Se consultaron páginas oficiales Microsoft sobre requisitos, instalación, retargeting, detección del runtime y descargas .NET 10; los enlaces y la fecha están en los documentos. No se modificó ningún target ni dependencia.
+
+Hallazgos estáticos registrados como GAP-01..09, sin corregir código: lectores que aún acumulan MessageLog, alcance limitado de Update all, datos auxiliares sin pruebas específicas, cobertura incompleta por versión/familia, comparación de whitespace/patrones, colección Defaults sin etapa propia, omisión de errores en SafeSql, Options con BsonIgnore y guardado SQL sin comprobar DialogResult. FileGroups relanza sus excepciones; no se clasifica como lector que silencie errores. Estos hallazgos no se presentan como incidentes reproducidos ni requisitos que deban replicarse.
+
+Verificación de esta sesión:
+
+- `git status --short`, `git rev-parse HEAD`, inspección de csproj/packages.config/App.config/appveyor y fuentes relevantes: siete proyectos siguen en **v4.5.2**.
+- `Test-Path` del mscorlib de referencias 4.8.1 en ruta estándar: **False**; registro runtime `Release=534296`. No confundir runtime presente con pack de compilación disponible.
+- Inventario XML/atributos: **72 métodos TestMethod/TestMethod()** incluidos en el proyecto de pruebas. Es conteo estático, no resultado nuevo de MSTest.
+- Validador local de Markdown: **158 enlaces locales comprobados, ninguno roto**, sobre los 17 documentos nuevos y AGENTS/README/DocumentoTecnico actualizados, antes de añadir esta entrada de seguimiento.
+- Parser PowerShell `System.Management.Automation.Language.Parser.ParseInput`: **5 bloques nuevos sin errores de sintaxis**. Los comandos de build/migración documentados no fueron ejecutados. Extracción auxiliar en `TestResults/migration-doc-command-blocks.json`, ignorada por Git.
+- **55 requisitos únicos** relacionados en Trazabilidad; CRLF y salto final verificados en los 17 documentos nuevos. `git -c core.whitespace=blank-at-eol,blank-at-eof,cr-at-eol diff --check`: correcto para archivos versionados modificados; formato de archivos nuevos revisado con el validador documental.
+
+Limitaciones: no se expusieron herramientas Codebase Memory MCP, por lo que se usó lectura directa y búsquedas de fuente; no se afirma generación/cobertura actual del grafo. No se ejecutaron builds, MSTest, GUI, consultas SQL ni cambios SQL; los 72/72 y probes anteriores siguen siendo evidencia histórica. No se instalaron componentes, hicieron commits ni push.
+
+Siguiente paso: iniciar desde [Continuidad](migración/Continuidad.md) y [tareas pendientes](migración/tasks/todo.md), confirmar Windows de destino y requisitos antes de implementar 4.8.1. La elección de reconstruir sigue abierta; la especificación hace visibles las brechas y requiere ampliar fixtures por familia antes de certificar una reconstrucción completa.
